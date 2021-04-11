@@ -1,8 +1,8 @@
 package advisor;
 
 import advisor.strategy.*;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -14,19 +14,33 @@ import java.net.http.HttpResponse;
 import java.util.*;
 
 public class Main {
-    private static final CommandExecutor commandExecutor = new CommandExecutor();
-
-
+    private static final HttpClient httpClient = HttpClient.newBuilder().build();
 
     public static void main(String[] args) {
         String accessPoint = "https://accounts.spotify.com";
-        if (args.length == 2) {
-            accessPoint = args[1];
+        String resourceAPI = "https://api.spotify.com";
+        if (args.length > 2) {
+            if ("-access".equals(args[0])) {
+                accessPoint = args[1];
+            } else if ("-resource".equals(args[0])) {
+                resourceAPI = args[1];
+            }
+            if (args.length == 4) {
+                if ("-access".equals(args[2])) {
+                    accessPoint = args[3];
+                } else if ("-resource".equals(args[2])) {
+                    resourceAPI = args[3];
+                }
+            }
         }
         String header = "";
         List<String> output = null;
         boolean authorized = false;
 
+        CommandExecutor commandExecutor = new CommandExecutor(resourceAPI, httpClient);
+
+        String accessToken = "";
+        String refreshToken = "";
 
         Scanner scanner = new Scanner(System.in);
         String input = scanner.nextLine();
@@ -34,12 +48,18 @@ public class Main {
         while (!"exit".equals(input)) {
             if (!authorized) {
                 if ("auth".equals(input)) {
+                    String[] tokens = null;
                     try {
-                        authorized = authorize(accessPoint);
+                        tokens = authorize(accessPoint);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if (authorized) {
+                    if (tokens != null) {
+                        authorized = true;
+                        accessToken = tokens[0];
+                        refreshToken = tokens[1];
+                        commandExecutor.setAccessToken(tokens[0]);
+
                         System.out.println("---SUCCESS---");
                     } else {
                         System.out.println("---AUTHORIZATION FAILED---");
@@ -67,12 +87,14 @@ public class Main {
                         header = "---CATEGORIES---";
                         break;
                 }
+
                 output = commandExecutor.executeStrategy();
             } else if (inputArr.length == 2) {
                 if ("playlists".equals(inputArr[0])) {
                     commandExecutor.setConsumerStrategy(new ConsumerStrategyGetPlaylistsByCategory());
                     header = "--" + inputArr[1] + " PLAYLISTS---";
                 }
+
                 output = commandExecutor.executeConsumerStrategy(inputArr[1]);
             }
 
@@ -87,8 +109,7 @@ public class Main {
         System.out.println("---GOODBYE!---");
     }
 
-    public static boolean authorize(String accessPoint) throws IOException {
-
+    public static String[] authorize(String accessPoint) throws IOException {
         String clientId = "a7b9a4757fea480d90f85db711027c0a";
         String redirectURI = "http://localhost:8888/";
         String authLink = accessPoint +
@@ -134,7 +155,7 @@ public class Main {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                return false;
+                return null;
             }
         }
 
@@ -143,7 +164,7 @@ public class Main {
 
         System.out.println("making http request for access_token...");
 
-        HttpClient httpClient = HttpClient.newBuilder().build();
+
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .uri(URI.create(accessPoint + "/api/token"))
@@ -161,12 +182,30 @@ public class Main {
             httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
+
+        JsonObject responseObject = JsonParser.parseString(httpResponse.body()).getAsJsonObject();
 
         System.out.println("response:\n" + httpResponse.body());
 
-        return true;
+        String accessToken = "";
+        String refreshToken = "";
+
+        if (responseObject.has("access_token")) {
+            accessToken = responseObject.get("access_token").getAsString();
+
+            if (responseObject.has("refresh_token")) {
+                refreshToken = responseObject.get("refresh_token").getAsString();
+            }
+
+            System.out.println(accessToken + ':' + refreshToken);
+        } else {
+            System.out.println(responseObject.get("error").getAsJsonObject().get("message"));
+            return null;
+        }
+
+        return new String[] { accessToken, refreshToken };
     }
 
     public static Map<String, String> queryToMap(String query) {

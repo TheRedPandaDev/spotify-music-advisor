@@ -1,5 +1,6 @@
 package advisor.strategy;
 
+import java.net.http.HttpClient;
 import java.util.List;
 
 public class StrategyGetCategories implements Strategy {
@@ -10,7 +11,7 @@ public class StrategyGetCategories implements Strategy {
     );
 
     @Override
-    public List<String> execute() {
+    public List<String> execute(HttpClient httpClient, String resourceAPI, String accessToken) {
         return categories;
     }
 }

@@ -12,7 +12,7 @@ public class ConsumerStrategyGetPlaylistsByCategory implements ConsumerStrategy 
                     "Sunday Stroll"));
 
     @Override
-    public List<String> execute(String input) {
+    public List<String> execute(String resourceAPI, String input) {
         return playlists.get(input);
     }
 }
