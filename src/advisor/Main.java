@@ -19,7 +19,7 @@ public class Main {
     public static void main(String[] args) {
         String accessPoint = "https://accounts.spotify.com";
         String resourceAPI = "https://api.spotify.com";
-        if (args.length > 2) {
+        if (args.length > 1) {
             if ("-access".equals(args[0])) {
                 accessPoint = args[1];
             } else if ("-resource".equals(args[0])) {
@@ -33,7 +33,6 @@ public class Main {
                 }
             }
         }
-        String header = "";
         List<String> output = null;
         boolean authorized = false;
 
@@ -60,9 +59,9 @@ public class Main {
                         refreshToken = tokens[1];
                         commandExecutor.setAccessToken(tokens[0]);
 
-                        System.out.println("---SUCCESS---");
+                        System.out.println("Success!");
                     } else {
-                        System.out.println("---AUTHORIZATION FAILED---");
+                        System.out.println("Authorization failed. Try again.");
                     }
                 } else {
                     System.out.println("Please, provide access for application.");
@@ -76,41 +75,41 @@ public class Main {
                 switch (input) {
                     case "new":
                         commandExecutor.setStrategy(new StrategyGetNew());
-                        header = "---NEW RELEASES---";
                         break;
                     case "featured":
                         commandExecutor.setStrategy(new StrategyGetFeatured());
-                        header = "---FEATURED---";
                         break;
                     case "categories":
                         commandExecutor.setStrategy(new StrategyGetCategories());
-                        header = "---CATEGORIES---";
                         break;
                 }
 
                 output = commandExecutor.executeStrategy();
-            } else if (inputArr.length == 2) {
+            } else if (inputArr.length > 1) {
                 if ("playlists".equals(inputArr[0])) {
                     commandExecutor.setConsumerStrategy(new ConsumerStrategyGetPlaylistsByCategory());
-                    header = "--" + inputArr[1] + " PLAYLISTS---";
                 }
 
-                output = commandExecutor.executeConsumerStrategy(inputArr[1]);
+                StringBuilder categoryName = new StringBuilder(inputArr[1]);
+
+                for (int i = 2; i < inputArr.length; i++) {
+                    categoryName.append(" ").append(inputArr[i]);
+                }
+
+                output = commandExecutor.executeConsumerStrategy(categoryName.toString());
             }
 
-            System.out.println(header);
             if (output != null) {
                 output.forEach(System.out::println);
             }
 
             input = scanner.nextLine();
         }
-
-        System.out.println("---GOODBYE!---");
     }
 
     public static String[] authorize(String accessPoint) throws IOException {
         String clientId = "a7b9a4757fea480d90f85db711027c0a";
+        String clientSecret = "";
         String redirectURI = "http://localhost:8888/";
         String authLink = accessPoint +
                 "/authorize?client_id=" +
@@ -171,8 +170,8 @@ public class Main {
                 .POST(HttpRequest.BodyPublishers.ofString("grant_type=authorization_code" +
                         "&code=" + code[0] +
                         "&redirect_uri=" + redirectURI +
-                        "&client_id=" +
-                        "&client_secret="
+                        "&client_id=" + clientId +
+                        "&client_secret=" + clientSecret
                 ))
                 .build();
 
