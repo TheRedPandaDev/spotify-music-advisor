@@ -51,9 +51,9 @@ public class StrategyGetNew implements Strategy {
 
             JsonArray artistArray = albumObject.get("artists").getAsJsonArray();
             StringBuilder artistsNamesSB = new StringBuilder("[");
-            artistsNamesSB.append(artistArray.get(0).getAsJsonObject().get("name"));
+            artistsNamesSB.append(artistArray.get(0).getAsJsonObject().get("name").getAsString());
             for (int i = 1; i < artistArray.size(); i++) {
-                artistsNamesSB.append(", ").append(artistArray.get(i).getAsJsonObject().get("name"));
+                artistsNamesSB.append(", ").append(artistArray.get(i).getAsJsonObject().get("name").getAsString());
             }
             artistsNamesSB.append("]");
             String artistsNames = artistsNamesSB.toString();
