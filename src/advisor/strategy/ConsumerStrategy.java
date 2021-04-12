@@ -1,7 +1,8 @@
 package advisor.strategy;
 
+import java.net.http.HttpClient;
 import java.util.List;
 
 public interface ConsumerStrategy {
-    List<String> execute(String resourceAPI, String input);
+    List<String> execute(HttpClient httpClient, String resourceAPI, String accessToken, String input);
 }

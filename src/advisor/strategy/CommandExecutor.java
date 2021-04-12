@@ -29,7 +29,7 @@ public class CommandExecutor {
     }
 
     public List<String> executeConsumerStrategy(String input) {
-        return consumerStrategy.execute(resourceAPI, input);
+        return consumerStrategy.execute(httpClient, resourceAPI, accessToken, input);
     }
 
     public void setAccessToken(String accessToken) {
