@@ -19,17 +19,33 @@ public class Main {
     public static void main(String[] args) {
         String accessPoint = "https://accounts.spotify.com";
         String resourceAPI = "https://api.spotify.com";
+        int entriesPerPage = 5;
         if (args.length > 1) {
             if ("-access".equals(args[0])) {
                 accessPoint = args[1];
             } else if ("-resource".equals(args[0])) {
                 resourceAPI = args[1];
+            } else if ("-page".equals(args[0])) {
+                entriesPerPage = Integer.parseInt(args[1]);
             }
-            if (args.length == 4) {
+
+            if (args.length > 3) {
                 if ("-access".equals(args[2])) {
                     accessPoint = args[3];
                 } else if ("-resource".equals(args[2])) {
                     resourceAPI = args[3];
+                } else if ("-page".equals(args[2])) {
+                    entriesPerPage = Integer.parseInt(args[3]);
+                }
+
+                if (args.length > 5) {
+                    if ("-access".equals(args[4])) {
+                        accessPoint = args[5];
+                    } else if ("-resource".equals(args[4])) {
+                        resourceAPI = args[5];
+                    } else if ("-page".equals(args[4])) {
+                        entriesPerPage = Integer.parseInt(args[5]);
+                    }
                 }
             }
         }
@@ -37,6 +53,7 @@ public class Main {
         boolean authorized = false;
 
         CommandExecutor commandExecutor = new CommandExecutor(resourceAPI, httpClient);
+        View view = new View(entriesPerPage);
 
         String accessToken = "";
         String refreshToken = "";
@@ -72,7 +89,17 @@ public class Main {
             }
             String[] inputArr = input.split(" ");
             if (inputArr.length == 1) {
+                boolean pageNav = false;
+
                 switch (input) {
+                    case "next":
+                        output = view.getNextPage();
+                        pageNav = true;
+                        break;
+                    case "prev":
+                        output = view.getPrevPage();
+                        pageNav = true;
+                        break;
                     case "new":
                         commandExecutor.setStrategy(new StrategyGetNew());
                         break;
@@ -84,7 +111,10 @@ public class Main {
                         break;
                 }
 
-                output = commandExecutor.executeStrategy();
+                if (!pageNav) {
+                    view.update(commandExecutor.executeStrategy());
+                    output = view.getCurrentPage();
+                }
             } else if (inputArr.length > 1) {
                 if ("playlists".equals(inputArr[0])) {
                     commandExecutor.setConsumerStrategy(new ConsumerStrategyGetPlaylistsByCategory());
@@ -96,7 +126,8 @@ public class Main {
                     categoryName.append(" ").append(inputArr[i]);
                 }
 
-                output = commandExecutor.executeConsumerStrategy(categoryName.toString());
+                view.update(commandExecutor.executeConsumerStrategy(categoryName.toString()));
+                output = view.getCurrentPage();
             }
 
             if (output != null) {
